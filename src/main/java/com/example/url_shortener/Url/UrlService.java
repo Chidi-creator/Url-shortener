@@ -1,53 +1,76 @@
 package com.example.url_shortener.Url;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.InvalidUrlException;
 
 @Service
 public class UrlService {
 
     private final UrlRepository urlRepository;
+    public static final String DOMAIN_URL = "http://localhost:8080/api/v1/";
+    private static final Logger logger = LoggerFactory.getLogger(UrlService.class);
 
     public UrlService(UrlRepository urlRepository) {
         this.urlRepository = urlRepository;
     }
 
-    public void shorten(Url url) {
+    public Url shorten(Url url) {
 
-        boolean valid = this.validateUrl(url.getLongUrl());
+        Optional<Url> existingUrl = urlRepository.findByLongUrl(url.getLongUrl());
 
-        if (!valid) {
-            throw new IllegalStateException("Url isn't valid, please submit valid url");
+        if(existingUrl.isPresent()){
+            return existingUrl.get();
         }
+        
+
+        logger.info("Sanitizing " + url.getLongUrl());
+        String sanitizedUrl = this.sanitizeUrl(url.getLongUrl());
+        logger.info("The sanitized url is " + sanitizedUrl);
 
         String unique = this.generateUniqueString();
 
         url.setShortUrl(unique);
+        url.setCreatedAt(LocalDateTime.now());
         url.setExpiresAt(url.getCreatedAt().plusDays(7));
+        url.setLongUrl(sanitizedUrl);
+
+        return urlRepository.save(url);
 
     }
 
-    private boolean validateUrl(String url) {
-        HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+    private String sanitizeUrl(String url) {
 
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-                .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(); // HEAD is faster then GET
+        url = url.trim();
 
-        try {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() > 200 && response.statusCode() < 400;
-        } catch (Exception e) {
-            // Log the error and return false because the "ping" failed
-            System.err.println("Error connecting to URL: " + e.getMessage());
-            return false;
+        if (url.startsWith("www")) {
+            url = url.substring(4);
         }
 
+        if (!url.startsWith("https://") && !url.startsWith("http://")) {
+            url = "https://" + url;
+        }
+
+        URI uri = URI.create(url);
+
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+
+        if (!scheme.equals("http") && !scheme.equals("https")) {
+            throw new InvalidUrlException("Only sites with http are allowed ");
+        }
+
+        if (host == null || host.isBlank()){
+            throw new InvalidUrlException("Invalid Domain Name");
+        }
+
+        return url;
     }
 
     private String generateUniqueString() {
