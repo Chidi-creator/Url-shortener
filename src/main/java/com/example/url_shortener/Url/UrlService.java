@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.InvalidUrlException;
 
+import com.example.url_shortener.exception.UrlNotFoundException;
+
 @Service
 public class UrlService {
 
@@ -23,16 +25,17 @@ public class UrlService {
 
     public Url shorten(Url url) {
 
-        Optional<Url> existingUrl = urlRepository.findByLongUrl(url.getLongUrl());
-
-        if(existingUrl.isPresent()){
-            return existingUrl.get();
-        }
-        
-
         logger.info("Sanitizing " + url.getLongUrl());
         String sanitizedUrl = this.sanitizeUrl(url.getLongUrl());
         logger.info("The sanitized url is " + sanitizedUrl);
+
+        Optional<Url> existingUrl = urlRepository.findByLongUrl(sanitizedUrl);
+
+        if (existingUrl.isPresent()) {
+            logger.info("Retreiving existing code for " + existingUrl.get().getLongUrl());
+            return existingUrl.get();
+
+        }
 
         String unique = this.generateUniqueString();
 
@@ -66,7 +69,7 @@ public class UrlService {
             throw new InvalidUrlException("Only sites with http are allowed ");
         }
 
-        if (host == null || host.isBlank()){
+        if (host == null || host.isBlank()) {
             throw new InvalidUrlException("Invalid Domain Name");
         }
 
@@ -76,4 +79,16 @@ public class UrlService {
     private String generateUniqueString() {
         return UUID.randomUUID().toString().substring(0, 6);
     }
+
+    public String getOriginalUrl(String code) {
+        Optional<Url> existingUrl = urlRepository.findByShortUrl(code);
+
+        if (!existingUrl.isPresent()) {
+            throw new UrlNotFoundException("Couldn't get code associated to url");
+        }
+
+        return existingUrl.get().getLongUrl();
+
+    }
+
 }
