@@ -16,6 +16,7 @@ import lombok.ToString;
 
 //./mvnw clean compile
 //./mvnw spring-boot:run
+// ./mvnw clean package -DskipTests
 
 @Table(name = "urls")
 @Getter

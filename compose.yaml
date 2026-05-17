@@ -1,9 +1,32 @@
 services:
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+  redis-cache:
+    # redis application
+    image: redis:alpine
+    container_name: redis_container
     ports:
-      - '5432'
+      - "6379:6379"
+    volumes:
+       - redis_data:/data
+    command: redis-server --appendonly yes
+
+  server:
+    #my server application
+    build: .
+    container_name: springboot_container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis-cache
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/urlshortener
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=password
+
+      # redis configuration
+
+      - SPRING_DATA_REDIS_HOST=redis-cache
+      - SPRING_DATA_REDIS_PORT=6379
+
+volumes:
+  redis_data:
+  
