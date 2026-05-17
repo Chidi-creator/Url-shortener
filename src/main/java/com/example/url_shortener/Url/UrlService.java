@@ -4,12 +4,14 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.InvalidUrlException;
 
+import com.example.url_shortener.cache.CacheService;
 import com.example.url_shortener.exception.UrlNotFoundException;
 
 @Service
@@ -18,9 +20,11 @@ public class UrlService {
     private final UrlRepository urlRepository;
     public static final String DOMAIN_URL = "http://localhost:8080/api/v1/";
     private static final Logger logger = LoggerFactory.getLogger(UrlService.class);
+    private final CacheService cacheService;
 
-    public UrlService(UrlRepository urlRepository) {
+    public UrlService(UrlRepository urlRepository, CacheService cacheService) {
         this.urlRepository = urlRepository;
+        this.cacheService = cacheService;
     }
 
     public Url shorten(Url url) {
@@ -44,7 +48,13 @@ public class UrlService {
         url.setExpiresAt(url.getCreatedAt().plusDays(7));
         url.setLongUrl(sanitizedUrl);
 
-        return urlRepository.save(url);
+        Url savedUrl = urlRepository.save(url);
+
+        // 2. CACHE TO REDIS SECOND (Guarantees DB synchronization is finished)
+        logger.info("Caching the finalized url code: " + unique);
+        cacheService.set(unique, sanitizedUrl, Duration.ofSeconds(3600));
+
+        return savedUrl;
 
     }
 
@@ -81,6 +91,13 @@ public class UrlService {
     }
 
     public String getOriginalUrl(String code) {
+        boolean exists = cacheService.exists(code);
+        if (exists) {
+            logger.info("Retrieving cached url");
+            return cacheService.get(code);
+        }
+
+        // fallback to db for code
         Optional<Url> existingUrl = urlRepository.findByShortUrl(code);
 
         if (!existingUrl.isPresent()) {
