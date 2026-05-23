@@ -1,6 +1,4 @@
-package com.example.url_shortener.Url;
-
-import java.time.LocalDateTime;
+package com.example.url_shortener.User;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,31 +12,24 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-//./mvnw clean compile
-//./mvnw spring-boot:run
-// ./mvnw clean package -DskipTests
-// ./mvnw clean package -DskipTests && docker-compose up --build
+import java.time.LocalDateTime;
 
-@Table(name = "urls")
-@Getter
-@Setter
+@Table(name="users")
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class Url {
+@Getter
+@Setter
+public class User {
 
     @Id
     @SequenceGenerator(name = "url_sequence", sequenceName = "url_sequence", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "url_sequence")
     private Long id;
 
-    private String longUrl;
-    private String shortUrl;
+    private String email;
+    private String password;
     private LocalDateTime createdAt;
-    private LocalDateTime expiresAt;
 
-    public Url(String longUrl) {
-        this.longUrl = longUrl;
-    }
 }

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.InvalidUrlException;
 
 import com.example.url_shortener.cache.CacheService;
-import com.example.url_shortener.exception.UrlNotFoundException;
+import com.example.url_shortener.exception.NotFoundException;
 
 @Service
 public class UrlService {
@@ -33,10 +33,16 @@ public class UrlService {
         String sanitizedUrl = this.sanitizeUrl(url.getLongUrl());
         logger.info("The sanitized url is " + sanitizedUrl);
 
+        //retriever from cache 
+        
+
         Optional<Url> existingUrl = urlRepository.findByLongUrl(sanitizedUrl);
 
         if (existingUrl.isPresent()) {
             logger.info("Retreiving existing code for " + existingUrl.get().getLongUrl());
+            // cache this after retreival
+            logger.info("Caching retrieved url");
+            cacheService.set(existingUrl.get().getShortUrl(), existingUrl.get().getLongUrl(), Duration.ofSeconds(3600));
             return existingUrl.get();
 
         }
@@ -101,7 +107,7 @@ public class UrlService {
         Optional<Url> existingUrl = urlRepository.findByShortUrl(code);
 
         if (!existingUrl.isPresent()) {
-            throw new UrlNotFoundException("Couldn't get code associated to url");
+            throw new NotFoundException("Couldn't get code associated to url");
         }
 
         return existingUrl.get().getLongUrl();

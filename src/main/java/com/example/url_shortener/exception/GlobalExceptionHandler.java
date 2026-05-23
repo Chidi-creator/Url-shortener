@@ -11,8 +11,8 @@ import org.springframework.web.context.request.WebRequest;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UrlNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(UrlNotFoundException ex, WebRequest request) {
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex, WebRequest request) {
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value(), "Not found",
                 ex.getMessage(),
@@ -21,8 +21,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(UrlDuplicateException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateException(UrlDuplicateException ex, WebRequest request) {
+    @ExceptionHandler(DuplicateException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateException(DuplicateException ex, WebRequest request) {
         ErrorResponse error = new ErrorResponse(LocalDateTime.now(), HttpStatus.CONFLICT.value(),
                 "Code Already exists try again", "Duplicate ", request.getDescription(false).replace("uri=", ""));
 

@@ -1,4 +1,4 @@
-CREATE TABLE urls(
+CREATE TABLE IF NOT EXISTS urls(
     id BIGSERIAL PRIMARY KEY,
     long_url TEXT NOT NULL,
     short_url VARCHAR(11) UNIQUE,
